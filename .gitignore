@@ -1,0 +1,30 @@
+.DS_Store
+node_modules
+/dist/
+/build/
+/src/public/video
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs
+*.log
+
+# Editor directories and files
+.idea
+.vscode
+.history
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# dotenv environment variables file
+.env
+
+# dotenv local env files
+.env.local
+.env.*.local

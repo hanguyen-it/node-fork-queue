@@ -1,0 +1,44 @@
+{
+  "parserOptions": {
+    "parser": "babel-eslint",
+    "ecmaVersion": 2020,
+    "sourceType": "module"
+  },
+  "env": {
+    "node": true,
+    "jest": true,
+    "es6": true
+  },
+  "extends": ["eslint:recommended", "plugin:prettier/recommended"],
+  "plugins": ["import", "jest", "prettier"],
+  "rules": {
+    "eqeqeq": "error",
+    "no-console": "warn",
+    "object-shorthand": "error",
+    "prefer-const": "error",
+    "spaced-comment": [
+      "error",
+      "always",
+      {
+        "line": {
+          "exceptions": ["///"]
+        },
+        "block": {
+          "exceptions": ["*"],
+          "balanced": true
+        }
+      }
+    ],
+    "curly": "error",
+    "jest/no-focused-tests": 2,
+    "jest/no-identical-title": 2,
+    "prettier/prettier": [
+      "error", { "endOfLine": "auto" }
+    ]
+  },
+  "globals": {
+    "_trm": false,
+    "__DEBUG__": false,
+    "__BUILD_TIME__": false
+  }
+}
