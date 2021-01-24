@@ -99,6 +99,11 @@ const longRunTask = async () => {
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 ```
 
+### Run test as follows:
+```js
+node MainProcess.js
+```
+
 ## Documentation
 
 ## Run Tests
