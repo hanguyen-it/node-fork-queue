@@ -4,9 +4,11 @@
   "description": "A queue for node.js that uses child processes (child_process.fork()). This queue uses Pools for child-process because it takes time to spawn new child-process.",
   "author": "Ha Nguyen <havietnguyen.it@gmail.com>",
   "repository": "https://github.com/hanguyen-it/node-fork-queue.git",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "nodemon test/MainProcess.js --exec babel-node"
+    "test": "nodemon test/MainProcess.js --exec babel-node",
+    "build": "babel src -d dist",
+    "prepublish": "npm run build"
   },
   "dependencies": {
     "generic-pool": "^3.7.1",
@@ -36,7 +38,7 @@
   "keywords": [
     "fork queue",
     "fork pool",
-	  "fork",
+    "fork",
     "queue",
     "typescript",
     "nodejs"
