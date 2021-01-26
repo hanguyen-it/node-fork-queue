@@ -34,16 +34,6 @@ export default class ForkQueue {
   }
 
   /**
-   * Drain pool during shutdown.
-   *
-   * Only call this once in your application -- at the point you want
-   * to shutdown and stop using this pool.
-   */
-  async drainPool() {
-    this.pool.drainPool();
-  }
-
-  /**
    * Push task to queue
    *
    * @param {*} message
@@ -250,6 +240,16 @@ export default class ForkQueue {
     }
 
     this.processNextTask();
+  }
+  
+  /**
+   * Drain pool during shutdown.
+   *
+   * Only call this once in your application -- at the point you want
+   * to shutdown and stop using this pool.
+   */
+  async stop() {
+    this.pool.drainPool();
   }
 
   /**

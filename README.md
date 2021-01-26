@@ -104,6 +104,45 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 node MainProcess.js
 ```
 
+### Cleanup resources (Kill child process when application process is killed/crashed)
+```js
+// Initialize ForkQueue
+const queue = new ForkQueue({
+  processFilePath: `${__dirname}/ChildProcess.js`,
+  maxPoolSize: 5,
+  minPoolSize: 2,
+  idleTimeoutMillis: 30000,
+});
+
+const errorTypes = ['unhandledRejection', 'uncaughtException'];
+
+errorTypes.map((type) => {
+  process.on(type, async (e) => {
+    try {
+      console.log(`process.on ${type}`);
+      console.error('Error occurs: ', e);
+      await queue.stop();
+
+      process.exit(0);
+    } catch (_) {
+      process.exit(1);
+    }
+  });
+});
+
+const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2'];
+
+signalTraps.map((type) => {
+  process.once(type, async () => {
+    try {
+      await queue.stop();
+    } finally {
+      process.kill(process.pid, type);
+    }
+  });
+});
+```
+
 ## Documentation
 
 ## Run Tests
