@@ -1,5 +1,7 @@
+import { ChildProcess } from 'child_process';
 import commonUtil from './utils/CommonUtil';
 import ForkPool from './ForkPool';
+import Task from './Task';
 
 export const LOWEST_PRIORITY = -1; // Lowest task priority
 export const HIGHEST_PRIORITY = 0; // Highest task priority
@@ -9,6 +11,14 @@ export const HIGHEST_PRIORITY = 0; // Highest task priority
  * Schedules tasks from queue and runs them in a child process (using child_process.fork()).
  */
 export default class ForkQueue {
+  queue: Task[];
+  taskRunningCount: number;
+  pauseQueue: boolean;
+  options: any;
+  pool: ForkPool;
+  saturatedCallback: any;
+  drainCallback: any;
+  unsaturatedCallback: any;
   /**
    * Constructor
    *
@@ -20,7 +30,7 @@ export default class ForkQueue {
    *     evictionRunIntervalMillis: how often idle resources are checked (must be greater than 0. Otherwise idleTimeoutMillis will NOT work)
    * }
    */
-  constructor(options) {
+  constructor(options: any) {
     // Initialize variables
     this.queue = [];
     this.taskRunningCount = 0;
@@ -48,11 +58,12 @@ export default class ForkQueue {
    *
    * @param {*} message
    * @param {*} callback
+   * @param {*} priority Optional. Default is LOWEST_PRIORITY if not set
    */
-  push(message, callback, priority) {
+  push(message: any, callback: any, priority?: number) {
     console.debug('ForkQueue receives message: %s', JSON.stringify(message));
 
-    const task = { message, callback, priority: commonUtil.isFieldMissing(priority) ? LOWEST_PRIORITY : priority };
+    const task: Task = new Task(message, callback, commonUtil.isFieldMissing(priority) ? LOWEST_PRIORITY : priority);
 
     if (this.isBusy()) {
       if (task.priority === LOWEST_PRIORITY) {
@@ -90,7 +101,7 @@ export default class ForkQueue {
    * @param {*} currentTask
    * @param {*} incommingTask
    */
-  isLowerPriority(currentTask, incommingTask) {
+  isLowerPriority(currentTask: any, incommingTask: any) {
     return currentTask.priority !== LOWEST_PRIORITY && incommingTask.priority >= currentTask.priority;
   }
 
@@ -100,10 +111,12 @@ export default class ForkQueue {
    * @private
    * @param {*} param0
    */
-  async processTask({ message, callback }) {
+  async processTask(task: Task) {
     this.taskRunningCount++;
     const self = this;
-    let forked;
+    let forked: ChildProcess;
+    const message = task.message;
+    const callback = task.callback;
 
     try {
       forked = await this.pool.acquire();
@@ -122,7 +135,7 @@ export default class ForkQueue {
 
     // This call back will be call once the task done.
     // response is { value, error }
-    const finishCallback = (response) => {
+    const finishCallback = (response: any) => {
       // Receipt response from child process
       isFinished = true;
       forked.removeListener('exit', exitCallback);
@@ -141,7 +154,7 @@ export default class ForkQueue {
     };
 
     // This call back will be call if child-process is unexpectedly exited while running.
-    const exitCallback = (code, signal) => {
+    const exitCallback = (code: any, signal: any) => {
       // Check if child-process is exited unexpectedly while running
       if (!isFinished) {
         console.error('Child-process is exited unexpectedly while running. [code: %s, signal: %s]', code, signal);
@@ -170,7 +183,11 @@ export default class ForkQueue {
   processNextTask() {
     if (this.length() > 0) {
       // Process next task
-      const queueItem = this.queue.shift();
+      const queueItem: Task | undefined = this.queue.shift();
+
+      if (queueItem === undefined) {
+        return;
+      }
 
       if (this.isResume() || queueItem.priority === HIGHEST_PRIORITY) {
         this.processTask(queueItem);
@@ -271,7 +288,7 @@ export default class ForkQueue {
    *
    * @param {*} callback
    */
-  saturated(callback) {
+  saturated(callback: any) {
     this.saturatedCallback = callback;
   }
 
@@ -280,7 +297,7 @@ export default class ForkQueue {
    *
    * @param {*} callback
    */
-  unsaturated(callback) {
+  unsaturated(callback: any) {
     this.unsaturatedCallback = callback;
   }
 
@@ -289,7 +306,7 @@ export default class ForkQueue {
    *
    * @param {*} callback
    */
-  drain(callback) {
+  drain(callback: any) {
     this.drainCallback = callback;
   }
 }

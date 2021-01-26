@@ -1,5 +1,5 @@
-import { fork } from 'child_process';
-import genericPool from 'generic-pool';
+import { fork, ChildProcess } from 'child_process';
+import genericPool, { Factory } from 'generic-pool';
 import os from 'os';
 
 /**
@@ -8,30 +8,39 @@ import os from 'os';
  * Pool of child_process.fork().
  */
 export default class ForkPool {
+  pool: any;
   /**
    * Init Pool
    * @param {*} options
    */
-  initPool(options) {
-    const factory = {
-      create() {
-        const forked = fork(options.processFilePath);
-        forked.on('exit', function (code, signal) {
-          console.debug('Forked is exited with code: %s, signal: %s', code, signal);
+  initPool(options: any) {
+    const factory: Factory<ChildProcess> = {
+      create: (): Promise<ChildProcess> => {
+
+        return new Promise<ChildProcess>(resolve => {
+          const forked = fork(options.processFilePath);
+          forked.on('exit', function (code, signal) {
+            console.debug('Forked is exited with code: %s, signal: %s', code, signal);
+          });
+
+          return resolve(forked);
         });
-
-        return forked;
       },
-      destroy(forked) {
-        forked.kill();
+      destroy: (forked: ChildProcess): Promise<void> => {
+        return new Promise<void>(resolve => {
+          forked.kill();
+          resolve();
+        });
       },
-      validate(forked) {
-        if (forked.exitCode !== null || forked.signalCode !== null) {
-          console.info('Child-process is terminated by the OS. Forking another child...');
-          return false;
-        }
+      validate: (forked: ChildProcess): Promise<boolean> => {
+        return new Promise<boolean>(resolve => {
+          if (forked.exitCode !== null || forked.signalCode !== null) {
+            console.info('Child-process is terminated by the OS. Forking another child...');
+            return false;
+          }
 
-        return true;
+          return true;
+        });
       },
     };
 
@@ -70,7 +79,7 @@ export default class ForkPool {
    *
    * @param {*} forked
    */
-  destroy(forked) {
+  destroy(forked: ChildProcess) {
     this.pool.destroy(forked);
   }
 
@@ -79,7 +88,7 @@ export default class ForkPool {
    *
    * @param {*} forked
    */
-  release(forked) {
+  release(forked: ChildProcess) {
     this.pool.release(forked);
   }
 

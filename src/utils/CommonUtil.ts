@@ -4,7 +4,7 @@ const helper = {
    *
    * @param {*} field
    */
-  isFieldMissing: (field) => {
+  isFieldMissing: (field: any) => {
     return typeof field === 'undefined' || field === null;
   },
 };
