@@ -1,6 +1,6 @@
 {
   "name": "node-fork-queue",
-  "version": "0.1.5",
+  "version": "0.1.7",
   "description": "A queue for node.js that uses child processes (child_process.fork()). This queue uses Pools for child-process because it takes time to spawn new child-process.",
   "author": "Ha Nguyen <havietnguyen.it@gmail.com>",
   "repository": {
@@ -25,7 +25,8 @@
   "license": "MIT",
   "main": "dist/index.js",
   "scripts": {
-    "test": "nodemon test/MainProcess.js --exec babel-node",
+    "test-basic": "nodemon examples/basic/MainProcess.js  --exec babel-node",
+    "test-stop": "nodemon examples/basic/StopMainProcess.js  --exec babel-node",
     "build": "babel src -d dist",
     "prepublish": "npm run build"
   },

@@ -1,4 +1,4 @@
-import ForkQueue from '../src/ForkQueue';
+import ForkQueue from '../../src/ForkQueue';
 
 // Initialize ForkQueue
 const queue = new ForkQueue({
@@ -29,18 +29,18 @@ queue.drain(() => {
 });
 
 // Start testing
-console.debug('START pushing messages to queue for concurrency processing')
+console.debug('START pushing messages to queue for concurrency processing');
 
-for(let idx = 0; idx < 10; idx++) {
+for (let idx = 0; idx < 10; idx++) {
+  const message = { content: 'Just dummy message ' + idx };
 
-  const message = {content: 'Just dummy message ' + idx};
+  const callback = (response) =>
+    console.info(
+      'Message %s has been successfully processed. Result: %s',
+      JSON.stringify(message),
+      JSON.stringify(response),
+    );
 
-  const callback = (response) => console.info(
-                'Message %s has been successfully processed. Result: %s',
-                JSON.stringify(message),
-                JSON.stringify(response)
-              );
-
-  // Push messages to queue for concurrency processing  
+  // Push messages to queue for concurrency processing
   queue.push(message, callback);
 }

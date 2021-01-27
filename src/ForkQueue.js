@@ -1,4 +1,7 @@
+import { performance } from 'perf_hooks';
 import commonUtil from './utils/CommonUtil';
+import CustomError from './models/CustomError';
+import { ERR_TIMED_OUT, ERR_UNEXPECTEDLY_EXITED } from './models/CustomError';
 import ForkPool from './ForkPool';
 
 export const LOWEST_PRIORITY = -1; // Lowest task priority
@@ -132,14 +135,19 @@ export default class ForkQueue {
 
     // This call back will be call if child-process is unexpectedly exited while running.
     const exitCallback = (code, signal) => {
-      // Check if child-process is exited unexpectedly while running
-      if (!isFinished) {
-        console.error('Child-process is exited unexpectedly while running. [code: %s, signal: %s]', code, signal);
-        self.pool.destroy(forked);
-
-        callback && callback({ error: new Error('Child-process is unexpectedly exited') });
-        self.finishTask();
+      if (isFinished) {
+        // Child-process is completed. Do nothing.
+        return;
       }
+
+      // Child-process is exited unexpectedly while running
+      console.error('Child-process is exited unexpectedly while running. [code: %s, signal: %s]', code, signal);
+      self.pool.destroy(forked);
+
+      const errMsg = ['Child-process is unexpectedly exited with [code: ', code, ', signal: ', signal, ']'].join('');
+
+      callback && callback({ error: new CustomError(ERR_UNEXPECTEDLY_EXITED, errMsg) });
+      self.finishTask();
     };
 
     forked.once('message', finishCallback);
@@ -241,15 +249,46 @@ export default class ForkQueue {
 
     this.processNextTask();
   }
-  
+
   /**
-   * Drain pool during shutdown.
+   * Cleanup resources during shutdown.
    *
    * Only call this once in your application -- at the point you want
-   * to shutdown and stop using this pool.
+   * to shutdown and stop using this queue.
    */
-  async stop() {
-    this.pool.drainPool();
+  async stop(timeoutMs) {
+    console.info('Request to stop Fork.Queue');
+    const start = performance.now();
+
+    // Pause the queue first
+    this.pause();
+    const stopTimeoutMs = timeoutMs || 2000;
+    let numOfTry = 0;
+    const period = 200;
+    const maxTry = stopTimeoutMs / 200;
+
+    return new Promise((resolve, reject) => {
+      // Waiting for running tasks to finish before cleaning up resources.
+      const waiting = () => {
+        if (this.running() === 0) {
+          // Cleanup resources
+          this.pool.drainPool();
+          console.info('Finish to stop Fork.Queue in %s milliseconds', performance.now() - start);
+          console.debug('ForkQueue status [waiting: %s, running: %s]', this.length(), this.running());
+
+          resolve();
+        } else if (++numOfTry < maxTry) {
+          setTimeout(waiting, period);
+        } else {
+          console.info('Timed-out in stopping Fork.Queue after %s milliseconds', performance.now() - start);
+          console.debug('ForkQueue status [waiting: %s, running: %s]', this.length(), this.running());
+
+          reject(new CustomError(ERR_TIMED_OUT, `Timed out after ${stopTimeoutMs} milliseconds.`));
+        }
+      };
+
+      waiting();
+    });
   }
 
   /**

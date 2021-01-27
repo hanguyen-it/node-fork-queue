@@ -2,14 +2,13 @@
 
 ## About
 
-  A queue for node.js that uses child processes (child_process.fork()). This queue uses Pools for child-process because it takes time to spawn new child-process. Can be used to reuse or throttle usage of expensive resources such as image processing or video rendering.
+A queue for node.js that uses child processes (child_process.fork()). This queue uses Pools for child-process because it takes time to spawn new child-process. Can be used to reuse or throttle usage of expensive resources such as image processing or video rendering.
 
 ## Installation
 
 ```sh
 $ npm install node-fork-queue [--save]
 ```
-
 
 ## Example
 
@@ -47,24 +46,25 @@ queue.drain(() => {
 });
 
 // Start testing
-console.debug('START pushing messages to queue for concurrency processing')
+console.debug('START pushing messages to queue for concurrency processing');
 
-for(let idx = 0; idx < 10; idx++) {
+for (let idx = 0; idx < 10; idx++) {
+  const message = { content: 'Just dummy message ' + idx };
 
-  const message = {content: 'Just dummy message ' + idx};
+  const callback = (response) =>
+    console.info(
+      'Message %s has been successfully processed. Result: %s',
+      JSON.stringify(message),
+      JSON.stringify(response),
+    );
 
-  const callback = (response) => console.info(
-                'Message %s has been successfully processed. Result: %s',
-                JSON.stringify(message),
-                JSON.stringify(response)
-              );
-
-  // Push messages to queue for concurrency processing  
+  // Push messages to queue for concurrency processing
   queue.push(message, callback);
 }
 ```
 
 ### Create ChildProcess.js as follows (same folder with MainProcess.js):
+
 ```js
 const idx = Math.floor(Math.random() * 51); // Random integer from 0 to 50
 const times = [100, 150, 250, 300, 450, 500, 600, 700, 800, 900, 1000];
@@ -82,29 +82,29 @@ process.on('message', async (message) => {
 
 const longRunTask = async () => {
   try {
-    
     await wait(times[idx % times.length]);
 
-    if (idx %12 === 0) {
+    if (idx % 12 === 0) {
       throw new Error('Just random error');
     }
 
-    return { value: { status: 'OK' }};
-
-  } catch(err) {
-    return { value: { status: 'ERROR' }, error: {message: err.message}};
+    return { value: { status: 'OK' } };
+  } catch (err) {
+    return { value: { status: 'ERROR' }, error: { message: err.message } };
   }
-}
+};
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 ```
 
 ### Run test as follows:
+
 ```js
 node MainProcess.js
 ```
 
 ### Cleanup resources (Kill child process when application process is killed/crashed)
+
 ```js
 // Initialize ForkQueue
 const queue = new ForkQueue({
@@ -114,6 +114,7 @@ const queue = new ForkQueue({
   idleTimeoutMillis: 30000,
 });
 
+const STOP_TIMEOUT_IN_MILLIS = 5000;
 const errorTypes = ['unhandledRejection', 'uncaughtException'];
 
 errorTypes.map((type) => {
@@ -121,7 +122,7 @@ errorTypes.map((type) => {
     try {
       console.log(`process.on ${type}`);
       console.error('Error occurs: ', e);
-      await queue.stop();
+      await queue.stop(STOP_TIMEOUT_IN_MILLIS);
 
       process.exit(0);
     } catch (_) {
@@ -135,7 +136,7 @@ const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2'];
 signalTraps.map((type) => {
   process.once(type, async () => {
     try {
-      await queue.stop();
+      await queue.stop(STOP_TIMEOUT_IN_MILLIS);
     } finally {
       process.kill(process.pid, type);
     }
@@ -145,21 +146,25 @@ signalTraps.map((type) => {
 
 ## Documentation
 
+## Clone source
+
+    $ git clone https://github.com/hanguyen-it/node-fork-queue.git
+
 ## Run Tests
 
     $ npm install
-    $ npm test
+    $ npm test-basic
+    $ npm test-stop
 
 ## Linting
 
 We use eslint combined with prettier
 
-
 ## License
 
 (The MIT License)
 
-Copyright (c) 2021-2021 Ha Nguyen &lt;havietnguyen.it@gmail.com&gt;
+Copyright (c) 2021 Ha Nguyen &lt;havietnguyen.it@gmail.com&gt;
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
