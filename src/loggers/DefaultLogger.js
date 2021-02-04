@@ -2,12 +2,7 @@ import { LOG_LEVELS } from './LoggerFactory';
 
 export default () => ({ namespace, level, label, log }) => {
   const prefix = namespace ? `[${namespace}] ` : '';
-
-  const message = JSON.stringify(
-    Object.assign({ level: label }, log, {
-      message: `${prefix}${log.message}`,
-    }),
-  );
+  const message = `${prefix}${log.message}`;
 
   switch (level) {
     case LOG_LEVELS.INFO:

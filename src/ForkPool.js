@@ -18,7 +18,7 @@ export default class ForkPool {
       create() {
         const forked = fork(options.processFilePath);
         forked.on('exit', function (code, signal) {
-          singletonLogger.debug('Forked is exited with code: %s, signal: %s', code, signal);
+          singletonLogger.debug(`Forked is exited with code: ${code}, signal: ${signal}`);
         });
 
         return forked;
@@ -47,10 +47,7 @@ export default class ForkPool {
     };
 
     singletonLogger.debug(
-      'Create fork-queue with options [min-pool-size: %s, max-pool-size: %s, idle-timeout-millis: %s]',
-      opts.min,
-      opts.max,
-      opts.softIdleTimeoutMillis,
+      `Create fork-queue with options [min-pool-size: ${opts.min}, max-pool-size: ${opts.max}, idle-timeout-millis: ${opts.softIdleTimeoutMillis}]`,
     );
 
     this.pool = genericPool.createPool(factory, opts);
