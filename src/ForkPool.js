@@ -1,6 +1,7 @@
 import { fork } from 'child_process';
 import genericPool from 'generic-pool';
 import os from 'os';
+import singletonLogger from './loggers/SingletonLogger';
 
 /**
  * Fork Pool
@@ -17,7 +18,7 @@ export default class ForkPool {
       create() {
         const forked = fork(options.processFilePath);
         forked.on('exit', function (code, signal) {
-          console.debug('Forked is exited with code: %s, signal: %s', code, signal);
+          singletonLogger.debug('Forked is exited with code: %s, signal: %s', code, signal);
         });
 
         return forked;
@@ -27,7 +28,7 @@ export default class ForkPool {
       },
       validate(forked) {
         if (forked.exitCode !== null || forked.signalCode !== null) {
-          console.info('Child-process is terminated by the OS. Forking another child...');
+          singletonLogger.info('Child-process is terminated by the OS. Forking another child...');
           return false;
         }
 
@@ -45,7 +46,7 @@ export default class ForkPool {
       testOnBorrow: true,
     };
 
-    console.debug(
+    singletonLogger.debug(
       'Create fork-queue with options [min-pool-size: %s, max-pool-size: %s, idle-timeout-millis: %s]',
       opts.min,
       opts.max,
@@ -98,7 +99,7 @@ export default class ForkPool {
     await this.pool.clear();
     delete this.pool;
 
-    console.info('Fork.Pool is drained.');
+    singletonLogger.info('Fork.Pool is drained.');
   }
 
   /**

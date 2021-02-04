@@ -2,6 +2,7 @@ import { performance } from 'perf_hooks';
 import commonUtil from './utils/CommonUtil';
 import CustomError from './models/CustomError';
 import { ERR_TIMED_OUT, ERR_UNEXPECTEDLY_EXITED } from './models/CustomError';
+import singletonLogger from './loggers/SingletonLogger';
 import ForkPool from './ForkPool';
 
 export const LOWEST_PRIORITY = -1; // Lowest task priority
@@ -24,6 +25,9 @@ export default class ForkQueue {
    * }
    */
   constructor(options) {
+    // Init Logger
+    singletonLogger.initLogger();
+
     // Initialize variables
     this.queue = [];
     this.taskRunningCount = 0;
@@ -43,7 +47,7 @@ export default class ForkQueue {
    * @param {*} callback
    */
   push(message, callback, priority) {
-    console.debug('ForkQueue receives message: %s', JSON.stringify(message));
+    singletonLogger.debug('ForkQueue receives message: %s', JSON.stringify(message));
 
     const task = { message, callback, priority: commonUtil.isFieldMissing(priority) ? LOWEST_PRIORITY : priority };
 
@@ -69,7 +73,7 @@ export default class ForkQueue {
       this.processTask(task);
     }
 
-    console.debug('ForkQueue status [waiting: %s, running: %s]', this.length(), this.running());
+    singletonLogger.debug('ForkQueue status [waiting: %s, running: %s]', this.length(), this.running());
 
     if (this.isBusy()) {
       this.saturatedCallback && this.saturatedCallback();
@@ -101,7 +105,7 @@ export default class ForkQueue {
     try {
       forked = await this.pool.acquire();
     } catch (err) {
-      console.error('Error in acquire child-process from Pool. %s', err);
+      singletonLogger.error('Error in acquire child-process from Pool. %s', err);
 
       callback && callback({ error: err });
       self.finishTask();
@@ -122,7 +126,7 @@ export default class ForkQueue {
 
       if (response.isFatalError) {
         // Kill child-process because it can be hanged up
-        console.info('Fatal error. Kill child-process because it can be hanged up');
+        singletonLogger.info('Fatal error. Kill child-process because it can be hanged up');
         self.pool.destroy(forked);
       } else {
         // Return child-process back to pool
@@ -141,7 +145,7 @@ export default class ForkQueue {
       }
 
       // Child-process is exited unexpectedly while running
-      console.error('Child-process is exited unexpectedly while running. [code: %s, signal: %s]', code, signal);
+      singletonLogger.error('Child-process is exited unexpectedly while running. [code: %s, signal: %s]', code, signal);
       self.pool.destroy(forked);
 
       const errMsg = ['Child-process is unexpectedly exited with [code: ', code, ', signal: ', signal, ']'].join('');
@@ -257,7 +261,7 @@ export default class ForkQueue {
    * to shutdown and stop using this queue.
    */
   async stop(timeoutMs) {
-    console.info('Request to stop Fork.Queue');
+    singletonLogger.info('Request to stop Fork.Queue');
     const start = performance.now();
 
     // Pause the queue first
@@ -273,15 +277,15 @@ export default class ForkQueue {
         if (this.running() === 0) {
           // Cleanup resources
           this.pool.drainPool();
-          console.info('Finish to stop Fork.Queue in %s milliseconds', performance.now() - start);
-          console.debug('ForkQueue status [waiting: %s, running: %s]', this.length(), this.running());
+          singletonLogger.info('Finish to stop Fork.Queue in %s milliseconds', performance.now() - start);
+          singletonLogger.debug('ForkQueue status [waiting: %s, running: %s]', this.length(), this.running());
 
           resolve();
         } else if (++numOfTry < maxTry) {
           setTimeout(waiting, period);
         } else {
-          console.info('Timed-out in stopping Fork.Queue after %s milliseconds', performance.now() - start);
-          console.debug('ForkQueue status [waiting: %s, running: %s]', this.length(), this.running());
+          singletonLogger.info('Timed-out in stopping Fork.Queue after %s milliseconds', performance.now() - start);
+          singletonLogger.debug('ForkQueue status [waiting: %s, running: %s]', this.length(), this.running());
 
           reject(new CustomError(ERR_TIMED_OUT, `Timed out after ${stopTimeoutMs} milliseconds.`));
         }
